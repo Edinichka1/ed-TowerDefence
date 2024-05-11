@@ -1,145 +1,87 @@
-#include "../include/menu.h"
-#include "../include/params.h"
+#include "../include/edTowerDefense.h"
 
 
-struct myButton {
-	RectangleShape button;
-	Text text;
-
-	myButton(RectangleShape& button, Text& text)
-		:button{ button }, text{ text } {}
-};
-
-myButton* playButtonG = nullptr;
-myButton* settingsButtonG = nullptr;
-myButton* exitButtonG = nullptr;
+void initButtons(myButton*& menu_buttons, const int window_width, const int window_height, Font& pixel_font);
+int clickProcessing(Vector2i& mouse_pos, myButton* menu_buttons);
 
 
-const double centerX = width * 0.2;
-const double centerY = height * 0.25;
-const double down = height * 0.18;
-const double widthButton = width * 0.6;
-const double heightButton = height * 0.1;
-const double characterSize = height * 0.07;
+void edTowerDefense::menu() {
 
-Color buttonColor = Color(39, 43, 45);
-
-
-bool initButtons = false;
-
-int returnState = MENU;
-
-void initButtonsFunk(Font& pixelFont);
-void deInitButtonsFunk();
-void drawButtons(RenderWindow& window);
-void clickProcessing(RenderWindow& window, Vector2i& mouse_pos);
-
-
-// draw Window and return codeEvent
-int drawMenu(RenderWindow& window, Font& pixelFont, Vector2i& mouse_pos, bool& mouse_clicked) {
-
-	window.clear(Color(157, 183, 203));
-
-
-	if (!initButtons) {
-		initButtonsFunk(pixelFont);
-	}
-	else if (mouse_clicked) {
-		clickProcessing(window, mouse_pos);
-		mouse_clicked = 0;
+	if (!menu_buttons) {
+		initButtons(menu_buttons, window_width, window_height, pixel_font);
 	}
 
-
-	drawButtons(window);
+	window.clear(menu_background_color);
+	for (int i = 0; i < 3; ++i) {
+		window.draw(menu_buttons[i].shape);
+		window.draw(menu_buttons[i].shapeText);
+	}
 	window.display();
 
 
-	if (returnState != MENU) {
-		deInitButtonsFunk();
+	if (mouse_clicked) {
+		switch (clickProcessing(mouse_pos, menu_buttons)) {
+		case 0:
+			state_code = StateCode::CHOICE_LEVEL;
+			delete[] menu_buttons;
+			break;
+		case 1:
+			state_code = StateCode::SETTINGS;
+			delete[] menu_buttons;
+			break;
+		case 2:
+			state_code = StateCode::EXIT;
+			delete[] menu_buttons;
+			break;
+		}
+		mouse_clicked = 0;
+	}
+}
+
+
+void initButtons(myButton*& menu_buttons, const int window_width, const int window_height, Font& pixel_font) {
+
+	menu_buttons = new myButton[3];
+
+	menu_buttons[0].text = "play";
+	menu_buttons[1].text = "settings";
+	menu_buttons[2].text = "exit";
+
+	for (int i = 0; i < 3; ++i) {
+
+		menu_buttons[i].width = window_width * 0.6;
+		menu_buttons[i].height = window_height * 0.1;
+
+		menu_buttons[i].x = window_width / 2 - menu_buttons[i].width / 2;
+		menu_buttons[i].y = (window_height / 4) * (i + 1) - menu_buttons[i].height / 2;
+
+		menu_buttons[i].character_size = window_height * 0.07;
+
+		menu_buttons[i].color_not_pressed = Color(39, 43, 45);
+		menu_buttons[i].color_pressed = Color(39, 53, 79);
+
+		menu_buttons[i].shape = RectangleShape(Vector2f(menu_buttons[i].width, menu_buttons[i].height));
+		menu_buttons[i].shape.setFillColor(menu_buttons[i].color_not_pressed);
+		menu_buttons[i].shape.setPosition(menu_buttons[i].x, menu_buttons[i].y);
+
+		menu_buttons[i].shapeText.setFont(pixel_font);
+		menu_buttons[i].shapeText.setString(menu_buttons[i].text);
+		menu_buttons[i].shapeText.setCharacterSize(menu_buttons[i].character_size);
+		menu_buttons[i].shapeText.setFillColor(Color::White);
+		menu_buttons[i].shapeText.setPosition(window_width / 2 - menu_buttons[i].shapeText.getGlobalBounds().width / 2,
+			menu_buttons[i].y);
+	}
+}
+
+int clickProcessing(Vector2i& mouse_pos, myButton* menu_buttons) {
+
+	for (int i = 0; i < 3; ++i) {
+		if (mouse_pos.x > menu_buttons[i].x && mouse_pos.x < menu_buttons[i].x + menu_buttons[i].width &&
+			mouse_pos.y > menu_buttons[i].y && mouse_pos.y < menu_buttons[i].y + menu_buttons[i].height) {
+
+			return i;
+		}
 	}
 
-	return returnState;
-}
-
-
-void drawButtons(RenderWindow& window) {
-	window.draw(playButtonG->button);
-	window.draw(playButtonG->text);
-
-	window.draw(settingsButtonG->button);
-	window.draw(settingsButtonG->text);
-
-	window.draw(exitButtonG->button);
-	window.draw(exitButtonG->text);
-}
-
-
-void initButtonsFunk(Font& pixelFont) {
-
-	Text playText;
-	Text settingsText;
-	Text exitText;
-
-	playText.setFont(pixelFont);
-	settingsText.setFont(pixelFont);
-	exitText.setFont(pixelFont);
-
-	playText.setString("play");
-	settingsText.setString("settings");
-	exitText.setString("exit");
-
-	playText.setCharacterSize(characterSize);
-	settingsText.setCharacterSize(characterSize);
-	exitText.setCharacterSize(characterSize);
-
-	playText.setFillColor(Color::White);
-	settingsText.setFillColor(Color::White);
-	exitText.setFillColor(Color::White);
-
-
-	RectangleShape playButton(Vector2f(widthButton, heightButton));
-	RectangleShape settingsButton(playButton);
-	RectangleShape exitButton(playButton);
-
-	playButton.setFillColor(buttonColor);
-	settingsButton.setFillColor(buttonColor);
-	exitButton.setFillColor(buttonColor);
-
-
-	playButton.setPosition(centerX, centerY);
-	settingsButton.setPosition(centerX, centerY + down);
-	exitButton.setPosition(centerX, centerY + down + down);
-
-	playText.setPosition(width / 2 - 1.38 * playText.getCharacterSize(), centerY);
-	settingsText.setPosition(width / 2 - 2.5 * settingsText.getCharacterSize(), centerY + down);
-	exitText.setPosition(width / 2 - 1.38 * exitText.getCharacterSize(), centerY + down + down);
-
-	playButtonG = new myButton(playButton, playText);
-	settingsButtonG = new myButton(settingsButton, settingsText);
-	exitButtonG = new myButton(exitButton, exitText);
-
-
-	initButtons = true;
-}
-
-void deInitButtonsFunk() {
-
-	delete playButtonG;
-	delete settingsButtonG;
-	delete exitButtonG;
-
-	initButtons = false;
-}
-
-
-void clickProcessing(RenderWindow& window, Vector2i& mouse_pos) {
-
-	if (mouse_pos.x > centerX && mouse_pos.x < centerX + widthButton) {
-
-		if (mouse_pos.y > centerY && mouse_pos.y < centerY + heightButton) returnState = CHOICE_LEVEL;
-
-		else if (mouse_pos.y > centerY + down && mouse_pos.y < centerY + heightButton + down) returnState = SETTINGS;
-
-		else if (mouse_pos.y > centerY + down * 2 && mouse_pos.y < centerY + heightButton + down * 2) returnState = EXIT;
-	}
+	return -1;
 }
